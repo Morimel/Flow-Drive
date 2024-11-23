@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - SecondViewController
 
-class SecondViewController: UIViewController {
+class SecondViewController: UIViewController, UITextFieldDelegate {
     
     // MARK: UI-элементы
     
@@ -46,6 +46,8 @@ class SecondViewController: UIViewController {
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
+        view.keyboardType = .numberPad
+        view.text = "+996"
         
         /// Установка внутреннего отступа и изображения слева
         let imageView = UIImageView(image: UIImage(systemName: "person.fill"))
@@ -81,6 +83,9 @@ class SecondViewController: UIViewController {
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
+        view.keyboardType = .emailAddress
+        view.autocorrectionType = .no
+        view.autocapitalizationType = .none // Заглавные буквы
         let imageView = UIImageView(image: UIImage(systemName: "envelope.fill"))
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .lightBlue
@@ -103,6 +108,16 @@ class SecondViewController: UIViewController {
         return view
     }()
     
+    private let carNumberExampleLabel: UILabel = {
+        let view = UILabel()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.textColor = .lightBlue
+        view.backgroundColor = .anotherWhite
+        view.font = .systemFont(ofSize: 16, weight: .regular)
+        view.text = "07KG015XAM"
+        return view
+    }()
+    
     private let carNumberTextField: UITextField = {
         let view = UITextField()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -112,6 +127,9 @@ class SecondViewController: UIViewController {
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
+        view.keyboardType = .asciiCapable // Английская раскладка
+        view.autocapitalizationType = .allCharacters // Заглавные буквы
+        view.clipsToBounds = false // Позволяем элементам выходить за границы
         let imageView = UIImageView(image: UIImage(systemName: "car"))
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .lightBlue
@@ -134,6 +152,13 @@ class SecondViewController: UIViewController {
         return view
     }()
     
+    private let eyeButton: UIButton = {
+        let view = UIButton()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.setImage(UIImage(systemName: "eye.slash.fill"), for: .normal)
+        return view
+    }()
+    
     private let passwordTextField: UITextField = {
         let view = UITextField()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -141,6 +166,7 @@ class SecondViewController: UIViewController {
         view.font = .systemFont(ofSize: 16, weight: .regular)
         view.textColor = .black
         view.layer.borderWidth = 1
+        view.isSecureTextEntry = true
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
         let imageView = UIImageView(image: UIImage(systemName: "key.fill"))
@@ -172,6 +198,7 @@ class SecondViewController: UIViewController {
         view.font = .systemFont(ofSize: 16, weight: .regular)
         view.textColor = .black
         view.layer.borderWidth = 1
+        view.isSecureTextEntry = true
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
         let imageView = UIImageView(image: UIImage(systemName: "key.fill"))
@@ -184,6 +211,17 @@ class SecondViewController: UIViewController {
         containerView.addSubview(imageView)
         view.leftView = containerView
         view.leftViewMode = .always
+        return view
+    }()
+    
+    private let warningLabel: UILabel = {
+        let view = UILabel()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.textColor = .red
+        view.isHidden = true
+        view.text = "Пароль должен содержать не менее 8 символом\nи содержать хотя бы один цифру"
+        view.numberOfLines = 0
+        view.font = .systemFont(ofSize: 12, weight: .regular)
         return view
     }()
     
@@ -211,6 +249,8 @@ class SecondViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .anotherWhite
         setup()
+        setupCarNumberMask()
+
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -228,6 +268,8 @@ class SecondViewController: UIViewController {
     // MARK: Установка функций
     
     private func setup() {
+        setupEyeButtonAction()
+        setupDelegates()
         setupTargets()
         setupGestureRecognizer()
         validateForm()
@@ -239,14 +281,17 @@ class SecondViewController: UIViewController {
     
     private func setupSubviews() {
         view.addSubview(scrollView)
+        scrollView.addSubview(warningLabel)
         scrollView.addSubview(registerLabel)
         scrollView.addSubview(phoneNumberLabel)
         scrollView.addSubview(phoneNumberTextField)
         scrollView.addSubview(carNumberLabel)
         scrollView.addSubview(carNumberTextField)
+        scrollView.addSubview(carNumberExampleLabel) // Добавляем метку отдельно, чтобы она была выше
         scrollView.addSubview(emailNumberLabel)
         scrollView.addSubview(emailNumberTextField)
         scrollView.addSubview(passwordLabel)
+        scrollView.addSubview(eyeButton)
         scrollView.addSubview(passwordTextField)
         scrollView.addSubview(repeatPasswordLabel)
         scrollView.addSubview(repeatPasswordTextField)
@@ -261,7 +306,7 @@ class SecondViewController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
-            registerLabel.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 12),
+            registerLabel.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 4),
             registerLabel.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 24),
             registerLabel.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -24),
             
@@ -283,6 +328,9 @@ class SecondViewController: UIViewController {
             carNumberTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             carNumberTextField.heightAnchor.constraint(equalToConstant: 50),
             
+            carNumberExampleLabel.centerYAnchor.constraint(equalTo: carNumberTextField.topAnchor),
+            carNumberExampleLabel.leadingAnchor.constraint(equalTo: carNumberTextField.leadingAnchor, constant: 24),
+            
             emailNumberLabel.topAnchor.constraint(equalTo: carNumberTextField.bottomAnchor, constant: 24),
             emailNumberLabel.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 24),
             emailNumberLabel.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -24),
@@ -295,6 +343,9 @@ class SecondViewController: UIViewController {
             passwordLabel.topAnchor.constraint(equalTo: emailNumberTextField.bottomAnchor, constant: 24),
             passwordLabel.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 24),
             passwordLabel.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -24),
+            
+            eyeButton.bottomAnchor.constraint(equalTo: passwordTextField.topAnchor, constant: -4),
+            eyeButton.trailingAnchor.constraint(equalTo: passwordTextField.trailingAnchor, constant: -12),
             
             passwordTextField.topAnchor.constraint(equalTo: passwordLabel.bottomAnchor, constant: 10),
             passwordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
@@ -310,7 +361,10 @@ class SecondViewController: UIViewController {
             repeatPasswordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             repeatPasswordTextField.heightAnchor.constraint(equalToConstant: 50),
             
-            registerButton.topAnchor.constraint(equalTo: repeatPasswordTextField.bottomAnchor, constant: 34),
+            warningLabel.topAnchor.constraint(equalTo: repeatPasswordTextField.bottomAnchor, constant: 4),
+            warningLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            
+            registerButton.topAnchor.constraint(equalTo: repeatPasswordTextField.bottomAnchor, constant: 36),
             registerButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             registerButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             registerButton.heightAnchor.constraint(equalToConstant: 50),
@@ -320,6 +374,20 @@ class SecondViewController: UIViewController {
             loginLabel.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20) // Ограничение нижней границы
         ])
         setupAttributedText()
+    }
+    
+    private func setupEyeButtonAction() {
+        eyeButton.addTarget(self, action: #selector(togglePasswordVisibility), for: .touchUpInside)
+    }
+    
+    private func setupCarNumberMask() {
+        // Создаем маску, которая перекроет верхнюю часть границы
+        let maskLayer = CALayer()
+        maskLayer.frame = CGRect(x: 0, y: 0, width: carNumberTextField.frame.width, height: 10) // Высота области перекрытия
+        maskLayer.backgroundColor = UIColor.white.cgColor // Цвет совпадает с цветом фона
+
+        // Добавляем маску к carNumberTextField
+        carNumberTextField.layer.addSublayer(maskLayer)
     }
     
     private var isFormValid: Bool {
@@ -336,11 +404,12 @@ class SecondViewController: UIViewController {
     }
     
     private func setupTargets() {
-        phoneNumberTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
-        carNumberTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
-        passwordTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
-        repeatPasswordTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        phoneNumberTextField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
+        carNumberTextField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
+        passwordTextField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
+        repeatPasswordTextField.addTarget(self, action: #selector(textFieldDidChange(_:)), for: .editingChanged)
     }
+
     
     /// 3. Add observers for 'UIKeyboardWillShow' and 'UIKeyboardWillHide' notification
     func addObservers() {
@@ -389,19 +458,96 @@ class SecondViewController: UIViewController {
     }
     
     private func validatePasswords() {
-        if passwordTextField.text != repeatPasswordTextField.text {
-            // Пароли не совпадают
-            passwordTextField.text = ""
-            repeatPasswordTextField.text = ""
-            passwordTextField.layer.borderColor = UIColor.red.cgColor
-            repeatPasswordTextField.layer.borderColor = UIColor.red.cgColor
-        } else {
-            // Пароли совпадают, переходим на следующий экран
-            let vc = OTPViewController()
-            navigationController?.pushViewController(vc, animated: true)
+        guard let password = passwordTextField.text,
+              let repeatPassword = repeatPasswordTextField.text else { return }
+
+        // Проверяем длину пароля
+        if password.count < 8 || repeatPassword.count < 8 {
+            warningLabel.text = "Пароль должен содержать не менее 8 символов"
+            showPasswordError()
+            return
         }
+
+        // Проверяем наличие хотя бы одной цифры
+        let containsDigit = password.rangeOfCharacter(from: .decimalDigits) != nil
+        if !containsDigit {
+            warningLabel.text = "Пароль должен содержать хотя бы одну цифру"
+            showPasswordError()
+            return
+        }
+
+        // Проверяем совпадение паролей
+        if password != repeatPassword {
+            warningLabel.text = "Пароли не совпадают"
+            showPasswordError()
+            return
+        }
+
+        // Если все условия выполнены
+        warningLabel.text = ""
+        proceedToNextScreen()
+    }
+
+    private func showPasswordError() {
+        // Очищаем текстовые поля
+        passwordTextField.text = ""
+        repeatPasswordTextField.text = ""
+
+        // Меняем цвет границы на красный
+        passwordTextField.layer.borderColor = UIColor.red.cgColor
+        repeatPasswordTextField.layer.borderColor = UIColor.red.cgColor
+
+        // Показываем предупреждение
+        warningLabel.isHidden = false
+    }
+
+    private func resetPasswordFields() {
+        // Сбрасываем границу на исходное состояние
+        passwordTextField.layer.borderColor = UIColor.lightGray.cgColor
+        repeatPasswordTextField.layer.borderColor = UIColor.lightGray.cgColor
+
+        // Скрываем предупреждение
+        warningLabel.isHidden = true
+    }
+
+    private func proceedToNextScreen() {
+        // Действие при успешной проверке
+        let vc = OTPViewController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    // Добавляем обработку изменения текста для восстановления нормального состояния
+    @objc private func textFieldDidChange(_ textField: UITextField) {
+        // Сбрасываем состояние
+        resetPasswordFields()
+        validateForm() // Проверка общей формы
+    }
+
+    
+    private func setupDelegates() {
+        phoneNumberTextField.delegate = self
     }
     
+    private func formatter(mask: String, phoneNumber: String) -> String {
+        /// Оставляем только цифры, исключая префикс "+996"
+        let digits = phoneNumber.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+        var result = "+996 " // Фиксированный префикс
+        var index = digits.startIndex
+        /// Пропускаем первые три цифры префикса (996)
+        if digits.hasPrefix("996") {
+            index = digits.index(index, offsetBy: 3)
+        }
+        for character in mask where index < digits.endIndex {
+            if character == "X" {
+                result.append(digits[index])
+                index = digits.index(after: index)
+            } else {
+                result.append(character)
+            }
+        }
+        return result
+    }
+
     private func setupAction() {
         registerButton.addAction(UIAction { [weak self] _ in
             self?.validatePasswords()
@@ -445,11 +591,40 @@ class SecondViewController: UIViewController {
         }
     }
     
+    @objc private func togglePasswordVisibility() {
+        // Переключение состояния isSecureTextEntry
+        passwordTextField.isSecureTextEntry.toggle()
+        repeatPasswordTextField.isSecureTextEntry.toggle()
+        
+        // Обновление изображения кнопки глаза
+        let eyeImageName = passwordTextField.isSecureTextEntry ? "eye.slash.fill" : "eye.fill"
+        eyeButton.setImage(UIImage(systemName: eyeImageName), for: .normal)
+    }
+    
     /// 2. Add method to handle tap event on the view and dismiss keyboard
     @objc func didTapView(gesture: UITapGestureRecognizer) {
         // This should hide keyboard for the view
         view.endEditing(true)
     }
+    
+    // MARK: textField функции
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard let currentText = textField.text else { return false }
+        /// Проверяем, что пользователь не удаляет или изменяет префикс "+996"
+        if range.location < 4 {
+            return false
+        }
+        /// Получаем новый текст после изменений
+        let newString = (currentText as NSString).replacingCharacters(in: range, with: string)
+        /// Форматируем новый текст
+        let formattedText = formatter(mask: " (XXX) XX-XX-XX", phoneNumber: newString)
+        /// Устанавливаем текст в поле
+        textField.text = formattedText
+        /// Возвращаем false, чтобы предотвратить стандартное поведение UITextField
+        return false
+    }
+
     
 }
 

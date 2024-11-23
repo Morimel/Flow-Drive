@@ -10,7 +10,7 @@ import SwiftUI
 
 //MARK: - LoginController
 
-class LoginController: UIViewController {
+class LoginController: UIViewController, UITextFieldDelegate  {
     
     // MARK: UI-элементы
     
@@ -34,7 +34,9 @@ class LoginController: UIViewController {
     
     private let phoneNumberTextField: UITextField = {
         let view = UITextField()
+        view.keyboardType = .numberPad
         view.translatesAutoresizingMaskIntoConstraints = false
+        view.text = "+996"
         view.placeholder = "Номер телефона"
         view.font = .systemFont(ofSize: 16, weight: .regular)
         view.textColor = .black
@@ -64,6 +66,13 @@ class LoginController: UIViewController {
         return view
     }()
     
+    private let eyeButton: UIButton = {
+        let view = UIButton()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.setImage(UIImage(systemName: "eye.slash.fill"), for: .normal)
+        return view
+    }()
+    
     private let passwordTextField: UITextField = {
         let view = UITextField()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -71,6 +80,7 @@ class LoginController: UIViewController {
         view.font = .systemFont(ofSize: 16, weight: .regular)
         view.textColor = .black
         view.layer.borderWidth = 1
+        view.isSecureTextEntry = true
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
         let imageView = UIImageView(image: UIImage(systemName: "key.fill"))
@@ -111,10 +121,20 @@ class LoginController: UIViewController {
         view.backgroundColor = .anotherWhite
         setup()
     }
+
+    // Удаляем подписку при деинициализации
+    deinit {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
     
     // MARK: - Установка функций
     
     private func setup() {
+        setupEyeButtonAction()
+        setupNotifications()
+        setupDeleagtes()
         setupTargets()
         validateForm()
         setupSubviews()
@@ -130,6 +150,7 @@ class LoginController: UIViewController {
         view.addSubview(phoneNumberLabel)
         view.addSubview(phoneNumberTextField)
         view.addSubview(passwordLabel)
+        view.addSubview(eyeButton)
         view.addSubview(passwordTextField)
         view.addSubview(loginButton)
         view.addSubview(loginLabel)
@@ -150,13 +171,16 @@ class LoginController: UIViewController {
             
             passwordLabel.topAnchor.constraint(equalTo: phoneNumberTextField.bottomAnchor, constant: 24),
             passwordLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            
+                        
             passwordTextField.topAnchor.constraint(equalTo: passwordLabel.bottomAnchor, constant: 10),
             passwordTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             passwordTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
             passwordTextField.heightAnchor.constraint(equalToConstant: 50),
             
-            loginButton.topAnchor.constraint(equalTo: passwordTextField.bottomAnchor, constant: 32),
+            eyeButton.bottomAnchor.constraint(equalTo: passwordTextField.topAnchor, constant: -4),
+            eyeButton.trailingAnchor.constraint(equalTo: passwordTextField.trailingAnchor, constant: -12),
+            
+            loginButton.topAnchor.constraint(equalTo: passwordTextField.bottomAnchor, constant: 170),
             loginButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             loginButton.heightAnchor.constraint(equalToConstant: 50),
             loginButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
@@ -165,6 +189,20 @@ class LoginController: UIViewController {
             loginLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24)
         ])
         setupAttributedText()
+    }
+    
+    private func setupEyeButtonAction() {
+        eyeButton.addTarget(self, action: #selector(togglePasswordVisibility), for: .touchUpInside)
+    }
+    
+    private func setupNotifications() {
+        // Подписка на уведомления клавиатуры
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    private func setupDeleagtes() {
+        phoneNumberTextField.delegate = self
     }
     
     private func setupTargets() {
@@ -177,6 +215,15 @@ class LoginController: UIViewController {
         tapGesture.cancelsTouchesInView = false /// Позволяет передавать нажатия элементам интерфейса
         view.addGestureRecognizer(tapGesture)
     }
+    
+    private func isPasswordValid(_ password: String) -> Bool {
+        /// Проверяем длину пароля
+        guard password.count >= 8 else { return false }
+        /// Проверяем, содержит ли пароль хотя бы одну цифру
+        let containsDigit = password.rangeOfCharacter(from: .decimalDigits) != nil
+        return containsDigit
+    }
+
     
     // Пример использования функции в кнопке входа
     
@@ -195,25 +242,38 @@ class LoginController: UIViewController {
         }
     }
     
-    private func validatePasswords() {
-        if ((passwordTextField.text?.isEmpty) == nil) || ((phoneNumberTextField.text?.isEmpty) == nil) {
-            passwordTextField.text = ""
-            phoneNumberTextField.text = ""
-            passwordTextField.layer.borderColor = UIColor.red.cgColor
-            phoneNumberTextField.layer.borderColor = UIColor.red.cgColor
-        } else {
-            // Пароли совпадают, переходим на следующий экран
-            let vc = MainViewController()
-            navigationController?.setViewControllers([vc], animated: true)
-        }
+    private func setupDelegates() {
+        phoneNumberTextField.delegate = self
     }
     
     private func setupAction() {
-        loginButton.addAction(UIAction { [weak self] _ in
-            self?.validatePasswords()
+        loginButton.addAction(UIAction { _ in
+            let vc = MainViewController()
+            self.navigationController?.setViewControllers([vc], animated: true)
         }, for: .touchUpInside)
     }
     
+    private func formatter(mask: String, phoneNumber: String) -> String {
+        /// Оставляем только цифры, исключая префикс "+996"
+        let digits = phoneNumber.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
+        var result = "+996 " // Фиксированный префикс
+        var index = digits.startIndex
+        /// Пропускаем первые три цифры префикса (996)
+        if digits.hasPrefix("996") {
+            index = digits.index(index, offsetBy: 3)
+        }
+        for character in mask where index < digits.endIndex {
+            if character == "X" {
+                result.append(digits[index])
+                index = digits.index(after: index)
+            } else {
+                result.append(character)
+            }
+        }
+        return result
+    }
+
+
     // MARK: Установка кастомного текста
     
     private func setupAttributedText() {
@@ -257,6 +317,52 @@ class LoginController: UIViewController {
         resetBorders()
     }
     
+    @objc private func togglePasswordVisibility() {
+        // Переключение состояния isSecureTextEntry
+        passwordTextField.isSecureTextEntry.toggle()
+        
+        // Обновление изображения кнопки глаза
+        let eyeImageName = passwordTextField.isSecureTextEntry ? "eye.slash.fill" : "eye.fill"
+        eyeButton.setImage(UIImage(systemName: eyeImageName), for: .normal)
+    }
+    
+    @objc private func keyboardWillShow(notification: NSNotification) {
+        // Получаем высоту клавиатуры
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        
+        // Устанавливаем отступ снизу
+        let keyboardHeight = keyboardFrame.height
+        UIView.animate(withDuration: 0.3) {
+            self.view.frame.origin.y = (-keyboardHeight / 2) - 24 // Поднимаем элементы на половину высоты клавиатуры
+        }
+    }
+
+    @objc private func keyboardWillHide(notification: NSNotification) {
+        // Возвращаем элементы в исходное положение
+        UIView.animate(withDuration: 0.3) {
+            self.view.frame.origin.y = 0
+        }
+    }
+    
+    // MARK: textField функции
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard let currentText = textField.text else { return false }
+        /// Проверяем, что пользователь не удаляет или изменяет префикс "+996"
+        if range.location < 4 {
+            return false
+        }
+        /// Получаем новый текст после изменений
+        let newString = (currentText as NSString).replacingCharacters(in: range, with: string)
+        /// Форматируем новый текст
+        let formattedText = formatter(mask: " (XXX) XX-XX-XX", phoneNumber: newString)
+        /// Устанавливаем текст в поле
+        textField.text = formattedText
+        /// Возвращаем false, чтобы предотвратить стандартное поведение UITextField
+        return false
+    }
+
 }
 
 //MARK: - Сanva для LoginController
