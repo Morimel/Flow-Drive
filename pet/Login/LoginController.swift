@@ -8,84 +8,11 @@
 import UIKit
 import SwiftUI
 
+//MARK: - LoginController
+
 class LoginController: UIViewController {
     
-    struct Login: Codable {
-        let phone: String
-        let password: String
-    }
-
-
-        var BaseURL: String = "https://probka-1.onrender.com/"
-        let ending = "/api/auth/login"
-        
-        // Функция для выполнения POST-запроса
-        private func performLoginRequest(loginData: Login, completion: @escaping (Result<Void, Error>) -> Void) {
-            guard let url = URL(string: BaseURL + ending) else {
-                completion(.failure(NSError(domain: "Invalid URL", code: 0, userInfo: nil)))
-                return
-            }
-            
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            
-            // Подготовка данных для отправки
-            let parameters: [String: String] = [
-                "phone": loginData.phone,
-                "password": loginData.password
-            ]
-            
-            do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: parameters, options: [])
-            } catch {
-                completion(.failure(error))
-                return
-            }
-            
-            // Выполнение запроса
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    completion(.failure(NSError(domain: "Invalid Response", code: 0, userInfo: nil)))
-                    return
-                }
-                
-                // Проверяем успешный статус код
-                if (200...299).contains(httpResponse.statusCode) {
-                    completion(.success(()))
-                } else {
-                    let errorMessage = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
-                    completion(.failure(NSError(domain: errorMessage, code: httpResponse.statusCode, userInfo: nil)))
-                }
-            }
-            
-            task.resume()
-        }
-        
-        
-        
-        // Показать предупреждение
-        private func showAlert(message: String) {
-            let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "ОК", style: .default))
-            present(alert, animated: true)
-        }
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // MARK: UI-элементы
     
     private let loginBigLabel: UILabel = {
         let view = UILabel()
@@ -114,18 +41,15 @@ class LoginController: UIViewController {
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
-        
-        // Установка внутреннего отступа и изображения слева
+        /// Установка внутреннего отступа и изображения слева
         let imageView = UIImageView(image: UIImage(systemName: "person.fill"))
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .lightBlue
-        
         let padding: CGFloat = 10
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: imageView.frame.width + padding, height: 0))
-        imageView.frame = CGRect(x: padding / 2, y: 0, width: 20, height: 20) // Размер изображения
-        imageView.center.y = containerView.center.y // Центрируем изображение по вертикали
+        imageView.frame = CGRect(x: padding / 2, y: 0, width: 20, height: 20) /// Размер изображения
+        imageView.center.y = containerView.center.y /// Центрируем изображение по вертикали
         containerView.addSubview(imageView)
-        
         view.leftView = containerView
         view.leftViewMode = .always
         return view
@@ -149,18 +73,14 @@ class LoginController: UIViewController {
         view.layer.borderWidth = 1
         view.layer.borderColor = UIColor.lightGray.cgColor
         view.layer.cornerRadius = 20
-        
-        // Установка внутреннего отступа и изображения слева
         let imageView = UIImageView(image: UIImage(systemName: "key.fill"))
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .lightBlue
-        
         let padding: CGFloat = 10
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: imageView.frame.width + padding, height: 0))
-        imageView.frame = CGRect(x: padding / 2, y: 0, width: 20, height: 20) // Размер изображения
-        imageView.center.y = containerView.center.y // Центрируем изображение по вертикали
+        imageView.frame = CGRect(x: padding / 2, y: 0, width: 20, height: 20)
+        imageView.center.y = containerView.center.y
         containerView.addSubview(imageView)
-        
         view.leftView = containerView
         view.leftViewMode = .always
         return view
@@ -184,18 +104,26 @@ class LoginController: UIViewController {
         return label
     }()
     
+    // MARK: ЖИзненный цикл
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .anotherWhite
         setup()
     }
     
+    // MARK: - Установка функций
+    
     private func setup() {
+        setupTargets()
+        validateForm()
         setupSubviews()
         setupConstraints()
         setupAction()
         setupGestureRecognizer()
     }
+    
+    // MARK: Установка UI-элементов
     
     private func setupSubviews() {
         view.addSubview(loginBigLabel)
@@ -207,18 +135,6 @@ class LoginController: UIViewController {
         view.addSubview(loginLabel)
     }
     
-    private func setupGestureRecognizer() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-            tapGesture.cancelsTouchesInView = false // Позволяет передавать нажатия элементам интерфейса
-            view.addGestureRecognizer(tapGesture)
-    }
-    
-    @objc private func dismissKeyboard() {
-        view.endEditing(true) // Закрывает клавиатуру
-    }
-
-    
-        
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             loginBigLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
@@ -251,37 +167,54 @@ class LoginController: UIViewController {
         setupAttributedText()
     }
     
+    private func setupTargets() {
+        phoneNumberTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        passwordTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+    }
+    
+    private func setupGestureRecognizer() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false /// Позволяет передавать нажатия элементам интерфейса
+        view.addGestureRecognizer(tapGesture)
+    }
+    
     // Пример использования функции в кнопке входа
+    
+    private var isFormValid: Bool {
+        return !phoneNumberTextField.text!.isEmpty &&
+        !passwordTextField.text!.isEmpty
+    }
+    
+    private func validateForm() {
+        if isFormValid {
+            loginButton.isEnabled = true
+            loginButton.backgroundColor = .systemBlue
+        } else {
+            loginButton.isEnabled = false
+            loginButton.backgroundColor = .lightGray
+        }
+    }
+    
+    private func validatePasswords() {
+        if ((passwordTextField.text?.isEmpty) == nil) || ((phoneNumberTextField.text?.isEmpty) == nil) {
+            passwordTextField.text = ""
+            phoneNumberTextField.text = ""
+            passwordTextField.layer.borderColor = UIColor.red.cgColor
+            phoneNumberTextField.layer.borderColor = UIColor.red.cgColor
+        } else {
+            // Пароли совпадают, переходим на следующий экран
+            let vc = MainViewController()
+            navigationController?.setViewControllers([vc], animated: true)
+        }
+    }
+    
     private func setupAction() {
         loginButton.addAction(UIAction { [weak self] _ in
-            guard let self = self else { return }
-            
-            // Получаем введенные данные
-            guard let phone = self.phoneNumberTextField.text,
-                  let password = self.passwordTextField.text,
-                  !phone.isEmpty,
-                  !password.isEmpty else {
-                self.showAlert(message: "Введите номер телефона и пароль")
-                return
-            }
-            
-            let loginData = Login(phone: phone, password: password)
-            
-            self.performLoginRequest(loginData: loginData) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success:
-                        // Успешный вход
-                        let mainViewController = MainViewController()
-                        self.navigationController?.setViewControllers([mainViewController], animated: true)
-                    case .failure(let error):
-                        // Ошибка входа
-                        self.showAlert(message: "Ошибка входа: \(error.localizedDescription)")
-                    }
-                }
-            }
+            self?.validatePasswords()
         }, for: .touchUpInside)
     }
+    
+    // MARK: Установка кастомного текста
     
     private func setupAttributedText() {
         let text = "Нажмите здесь, если нет аккаунта"
@@ -294,29 +227,45 @@ class LoginController: UIViewController {
         let blackRange = (text as NSString).range(of: " если нет аккаунта")
         attributedString.addAttribute(.foregroundColor, value: UIColor.black, range: blackRange)
         loginLabel.attributedText = attributedString
-        // Добавляем GestureRecognizer для нажатия на синюю часть
+        /// Добавляем GestureRecognizer для нажатия на синюю часть
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleBlueTextTap(_:)))
         loginLabel.addGestureRecognizer(tapGesture)
     }
-
+    
+    // MARK: objc функции
     
     @objc private func handleBlueTextTap(_ gesture: UITapGestureRecognizer) {
         let text = loginLabel.attributedText?.string ?? ""
         let blueRange = (text as NSString).range(of: "Нажмите здесь,")
         if gesture.didTapAttributedTextInLabel(label: loginLabel, inRange: blueRange) {
             let nextVC = SecondViewController()
-            navigationController?.pushViewController(nextVC, animated: true)
+            navigationController?.setViewControllers([nextVC], animated: true)
         }
+    }
+        
+    @objc private func dismissKeyboard() {
+        view.endEditing(true) /// Закрывает клавиатуру
+    }
+    
+    @objc private func resetBorders() {
+        passwordTextField.layer.borderColor = UIColor.lightGray.cgColor
+        phoneNumberTextField.layer.borderColor = UIColor.lightGray.cgColor
+    }
+    
+    @objc private func textFieldDidChange() {
+        validateForm()
+        resetBorders()
     }
     
 }
 
+//MARK: - Сanva для LoginController
 
 struct ViewControllerPreview: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         return LoginController()
     }
-
+    
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 

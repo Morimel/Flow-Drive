@@ -7,19 +7,17 @@
 
 import UIKit
 
+// MARK: - NewsViewController
+
 class NewsViewController: UIViewController {
     
-    private let news: News
-
-    init(news: News) {
-        self.news = news
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
+    // MARK: Элементы
+    
+    var titleText = ""
+    var imageName = ""
+    
+    // MARK: UI-элементы
+    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -27,7 +25,7 @@ class NewsViewController: UIViewController {
         imageView.clipsToBounds = true
         return imageView
     }()
-
+    
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 24, weight: .bold)
@@ -36,7 +34,7 @@ class NewsViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
     private let textLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16, weight: .regular)
@@ -45,19 +43,30 @@ class NewsViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
+    // MARK: Жизненный цикл
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
         setup()
-        configureView()
     }
-
+    
+    // MARK: Установка функций
+    
     private func setup() {
+        setupData()
+        setupSubviews()
+        setupConstraints()
+    }
+    
+    private func setupSubviews() {
         view.addSubview(imageView)
         view.addSubview(titleLabel)
         view.addSubview(textLabel)
-
+    }
+    
+    private func setupConstraints() {
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -74,37 +83,10 @@ class NewsViewController: UIViewController {
             textLabel.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16)
         ])
     }
-
-    private func configureView() {
-        titleLabel.text = news.title
-        textLabel.text = news.text
-        
-        if let imageUrl = URL(string: news.imageUrl) {
-            loadImage(from: imageUrl) { [weak self] image in
-                DispatchQueue.main.async {
-                    self?.imageView.image = image ?? UIImage(named: "placeholder")
-                }
-            }
-        } else {
-            imageView.image = UIImage(named: "placeholder")
-        }
+    
+    private func setupData() {
+        titleLabel.text = titleText
+        imageView.image = UIImage(named: imageName)
     }
-
-    private func loadImage(from url: URL, completion: @escaping (UIImage?) -> Void) {
-        let task = URLSession.shared.dataTask(with: url) { data, _, error in
-            if let error = error {
-                print("Error loading image: \(error.localizedDescription)")
-                completion(nil)
-                return
-            }
-            
-            guard let data = data, let image = UIImage(data: data) else {
-                completion(nil)
-                return
-            }
-            
-            completion(image)
-        }
-        task.resume()
-    }
+    
 }

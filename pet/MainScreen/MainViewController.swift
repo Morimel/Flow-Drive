@@ -8,10 +8,16 @@
 import UIKit
 import SwiftUI
 
+// MARK: - MainViewController
+
 class MainViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
-    // MARK: - Properties
-    private var newsData: [News] = [] // Храним данные для collectionView
+    // MARK: Элементы
+    
+    private let titleArray = ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]
+    private let imageArray = ["img1", "img2", "img3", "img4", "img5"]
+        
+    // MARK: UI-элементы
     
     private let collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -81,22 +87,17 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
         return view
     }()
     
-    // MARK: - View Lifecycle
+    // MARK: - Жизненный цикл
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .lightBlue
         setup()
-        fetchNewsList()
-        print("CollectionView frame: \(collectionView.frame)") // Проверьте размеры
-
-//        DispatchQueue.main.async {
-//            self?.newsData = newsList
-//            self?.collectionView.reloadData()
-//        }
-
+        
     }
     
-    // MARK: - Setup Methods
+    // MARK: - Уствновка функций
+    
     private func setup() {
         setupSubviews()
         setupConstraints()
@@ -140,9 +141,9 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
             pointsLaabel.leadingAnchor.constraint(equalTo: bonusView.leadingAnchor, constant: 24),
             
             collectionView.topAnchor.constraint(equalTo: bonusView.bottomAnchor, constant: 32),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            collectionView.heightAnchor.constraint(equalToConstant: 200)
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            collectionView.heightAnchor.constraint(equalToConstant: 400)
         ])
     }
     
@@ -151,201 +152,42 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
         collectionView.dataSource = self
     }
     
-    // MARK: - Networking
-    func performFetchRequest(_ url: String, completion: @escaping (Result<Data, Error>) -> Void) {
-        guard let url = URL(string: url) else {
-            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: nil)))
-            return
-        }
-        
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            
-            guard let data = data else {
-                completion(.failure(NSError(domain: "No Data", code: 404, userInfo: nil)))
-                return
-            }
-            
-            completion(.success(data))
-        }
-        task.resume()
-    }
-    private func fetchNewsList() {
-        let baseURL = "https://probka-1.onrender.com/"
-        let endpoint = "api/news/getNews"
-        
-        guard let url = URL(string: baseURL + endpoint) else {
-            print("Invalid URL")
-            return
-        }
-        
-        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            if let error = error {
-                print("Error fetching news list: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-            
-            // 1. Печатаем данные в виде строки для проверки
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("Server Response: \(jsonString)")
-            } else {
-                print("Failed to convert data to string")
-            }
-            
-            // 2. Пытаемся декодировать данные в массив новостей
-            do {
-                let newsList = try JSONDecoder().decode([News].self, from: data)
-                print("Decoded News List: \(newsList)") // Для отладки
-                
-                DispatchQueue.main.async {
-                    self?.newsData = newsList
-                    self?.collectionView.reloadData()
-                }
-            } catch let DecodingError.dataCorrupted(context) {
-                print("Data corrupted: \(context)")
-            } catch let DecodingError.keyNotFound(key, context) {
-                print("Key '\(key)' not found: \(context.debugDescription)")
-            } catch let DecodingError.typeMismatch(type, context) {
-                print("Type '\(type)' mismatch: \(context.debugDescription)")
-            } catch let DecodingError.valueNotFound(value, context) {
-                print("Value '\(value)' not found: \(context.debugDescription)")
-            } catch {
-                print("Error decoding news list: \(error.localizedDescription)")
-            }
-        }
-        task.resume()
-    }
-
+    // MARK: - Методы UICollectionViewDataSource
     
-    private func fetchNewsDetails(by id: Int, completion: @escaping (News) -> Void) {
-        let baseURL = "https://probka-1.onrender.com/"
-        let endpoint = "api/news/getNews/\(id)"
-        
-        guard let url = URL(string: baseURL + endpoint) else {
-            print("Invalid URL")
-            return
-        }
-        
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Error fetching news details: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let data = data else {
-                print("No data received")
-                return
-            }
-            
-            // Печатаем данные для отладки
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("News Details JSON Response: \(jsonString)")
-            }
-            
-            // Декодируем данные
-            do {
-                let newsDetails = try JSONDecoder().decode(News.self, from: data)
-                completion(newsDetails)
-            } catch let DecodingError.dataCorrupted(context) {
-                print("Data corrupted: \(context)")
-            } catch let DecodingError.keyNotFound(key, context) {
-                print("Key '\(key)' not found: \(context.debugDescription)")
-            } catch let DecodingError.typeMismatch(type, context) {
-                print("Type '\(type)' mismatch: \(context.debugDescription)")
-            } catch let DecodingError.valueNotFound(value, context) {
-                print("Value '\(value)' not found: \(context.debugDescription)")
-            } catch {
-                print("Error decoding news details: \(error.localizedDescription)")
-            }
-        }
-        task.resume()
-    }
-
-    private func loadImage(from url: URL, completion: @escaping (UIImage?) -> Void) {
-        let task = URLSession.shared.dataTask(with: url) { data, _, error in
-            if let error = error {
-                print("Error loading image: \(error.localizedDescription)")
-                completion(nil)
-                return
-            }
-            
-            guard let data = data, let image = UIImage(data: data) else {
-                completion(nil)
-                return
-            }
-            
-            completion(image)
-        }
-        task.resume()
-    }
-    
-
-    
-    // MARK: - UICollectionViewDataSource Methods
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        print("Number of items: \(newsData.count)") // Добавьте для проверки
-        return newsData.count
+        return titleArray.count
     }
-
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CustomCollectionViewCell.identifier, for: indexPath) as? CustomCollectionViewCell else {
             return UICollectionViewCell()
         }
-        
-        let newsItem = newsData[indexPath.item]
-        cell.configure(with: UIImage(named: "placeholder"), text: newsItem.title)
-        
-        if let imageUrl = URL(string: newsItem.imageUrl) {
-            loadImage(from: imageUrl) { image in
-                DispatchQueue.main.async {
-                    cell.configure(with: image, text: newsItem.title)
-                }
-            }
-        }
-        
+        let titleItem = titleArray[indexPath.item]
+        let imageItem = imageArray[indexPath.item]
+        cell.configure(with: UIImage(named: imageItem), text: titleItem)
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: 200, height: 300) // Убедитесь, что размеры адекватные
+        return CGSize(width: 320, height: 300)
     }
-
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Получаем ID выбранной новости
-        let selectedNewsId = newsData[indexPath.item].idNews
-        
-        // Загружаем подробности о новости
-        fetchNewsDetails(by: selectedNewsId) { [weak self] newsDetails in
-            guard let self = self else { return }
-            
-            // Создаем NewsViewController с полученными данными
-            DispatchQueue.main.async {
-                let newsViewController = NewsViewController(news: newsDetails)
-                self.navigationController?.pushViewController(newsViewController, animated: true)
-            }
-        }
+        let vc = NewsViewController()
+        vc.titleText = titleArray[indexPath.row]
+        vc.imageName = imageArray[indexPath.row]
+        navigationController?.pushViewController(vc, animated: true)
     }
-
-
+    
 }
 
-
+// MARK: - Canva для MainViewController
 
 struct MainViewControllerPreview: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         return MainViewController()
     }
-
+    
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 

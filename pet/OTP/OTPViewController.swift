@@ -8,13 +8,21 @@
 import UIKit
 import SwiftUI
 
+// MARK: - OTPFieldDelegate протокол
+
 protocol OTPFieldDelegate: AnyObject {
+    
     func backwardDeteced(textField: OTPTextField)
+    
 }
+
+// MARK: - OTPViewController
 
 class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate {
     
     private var verifyButtonBottomConstraint: NSLayoutConstraint!
+    
+    // MARK: UI-элементы
     
     private let stackView: UIStackView = {
         let view = UIStackView()
@@ -103,16 +111,13 @@ class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate
         return view
     }()
     
+    // MARK: Жтзненный цикл
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.title = "Введите код подтверждения"
         view.backgroundColor = .white
         setup()
-        self.title = "Введите код подтверждения"
-        
-        // Подписка на уведомления клавиатуры
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     deinit {
@@ -121,22 +126,15 @@ class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate
         NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
+    // MARK: Установка функци1
+    
     private func setup() {
+        setupNotificationCenter()
         setupSubviews()
         setupConstraints()
         setupDelegate()
         setupAction()
         setupGestureRecognizer()
-    }
-    
-    private func setupGestureRecognizer() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-            tapGesture.cancelsTouchesInView = false // Позволяет передавать нажатия элементам интерфейса
-            view.addGestureRecognizer(tapGesture)
-    }
-    
-    @objc private func dismissKeyboard() {
-        view.endEditing(true) // Закрывает клавиатуру
     }
     
     private func setupSubviews() {
@@ -178,15 +176,6 @@ class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate
         ])
     }
     
-    private func setupAction() {
-        verifyButton.addAction(UIAction { [weak self] _ in
-            guard let self = self else { return }
-            let mainViewController = MainViewController()
-            self.navigationController?.setViewControllers([mainViewController], animated: true)
-        }, for: .touchUpInside)
-    }
-
-    
     private func setupDelegate() {
         textField1.delegate = self
         textField2.delegate = self
@@ -197,6 +186,79 @@ class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate
         textField2.backDelegate = self
         textField3.backDelegate = self
         textField4.backDelegate = self
+    }
+    
+    private func setupNotificationCenter() {
+        // Подписка на уведомления клавиатуры
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    private func setupGestureRecognizer() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false // Позволяет передавать нажатия элементам интерфейса
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    private func setupAction() {
+        verifyButton.addAction(UIAction { [weak self] _ in
+            guard let self = self else { return }
+            let mainViewController = MainViewController()
+            self.navigationController?.setViewControllers([mainViewController], animated: true)
+        }, for: .touchUpInside)
+    }
+    
+    func backwardDeteced(textField: OTPTextField) {
+        switch textField {
+        case textField1:
+            print("txt1 -> no change")
+        case textField2:
+            textField1.becomeFirstResponder()
+        case textField3:
+            textField2.becomeFirstResponder()
+        case textField4:
+            textField3.becomeFirstResponder()
+        default:
+            print("at default")
+        }
+    }
+    
+    // MARK: Фунцкии для textField
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // Сопоставление textField с порядком
+        let textFields = [textField1, textField2, textField3, textField4]
+        
+        guard let index = textFields.firstIndex(of: textField as! OTPTextField),
+              let currentTextField = textFields[safe: index] else {
+            return false
+        }
+        
+        // Проверка на пустую строку
+        if string.isEmpty {
+            currentTextField.text = string
+            if let previousTextField = textFields[safe: index - 1] {
+                previousTextField.becomeFirstResponder()
+            }
+            return false
+        }
+        
+        // Ограничение ввода только цифр
+        if let _ = Int(string) {
+            currentTextField.text = string
+            if let nextTextField = textFields[safe: index + 1] {
+                nextTextField.becomeFirstResponder()
+            }
+            return false
+        }
+        return false
+    }
+
+    
+    // MARK: objc функции
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true) // Закрывает клавиатуру
     }
     
     @objc private func keyboardWillShow(_ notification: Notification) {
@@ -218,74 +280,15 @@ class OTPViewController: UIViewController, UITextFieldDelegate, OTPFieldDelegate
         }
     }
     
-    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        // Сопоставление textField с порядком
-        let textFields = [textField1, textField2, textField3, textField4]
-        
-        guard let index = textFields.firstIndex(of: textField as! OTPTextField),
-              let currentTextField = textFields[safe: index] else {
-            return false
-        }
-
-        // Проверка на пустую строку
-        if string.isEmpty {
-            currentTextField.text = string
-            if let previousTextField = textFields[safe: index - 1] {
-                previousTextField.becomeFirstResponder()
-            }
-            return false
-        }
-
-        // Ограничение ввода только цифр
-        if let _ = Int(string) {
-            currentTextField.text = string
-            if let nextTextField = textFields[safe: index + 1] {
-                nextTextField.becomeFirstResponder()
-            }
-            return false
-        }
-
-        return false
-    }
-    
-    func backwardDeteced(textField: OTPTextField) {
-        switch textField {
-        case textField1:
-            print("txt1 -> no change")
-        case textField2:
-            textField1.becomeFirstResponder()
-        case textField3:
-            textField2.becomeFirstResponder()
-        case textField4:
-            textField3.becomeFirstResponder()
-        default:
-            print("at default")
-        }
-    }
 }
 
-
-class OTPTextField: UITextField {
-    weak var backDelegate: OTPFieldDelegate?
-    override func deleteBackward() {
-        super.deleteBackward()
-        self.backDelegate?.backwardDeteced(textField: self)
-    }
-}
-
-extension Array {
-    subscript(safe index: Int) -> Element? {
-        return indices.contains(index) ? self[index] : nil
-    }
-}
-
-
+// MARK: - Canva для OTPViewController
 
 struct OTPViewControllerPreview: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         return OTPViewController()
     }
-
+    
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 

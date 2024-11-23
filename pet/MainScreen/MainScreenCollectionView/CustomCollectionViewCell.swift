@@ -7,14 +7,20 @@
 
 import UIKit
 
+// MARK: - CustomCollectionViewCell
+
 class CustomCollectionViewCell: UICollectionViewCell {
     
     static let identifier = "CustomCollectionViewCell"
+    
+    // MARK: UI-элементы
     
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+        imageView.contentMode = .scaleAspectFill
+        imageView.layer.cornerRadius = 10
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
@@ -23,10 +29,12 @@ class CustomCollectionViewCell: UICollectionViewCell {
         let label = UILabel()
         label.textAlignment = .center
         label.textColor = .black
-        label.font = .systemFont(ofSize: 16, weight: .medium)
+        label.font = .systemFont(ofSize: 18, weight: .bold)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+    
+    // MARK: Жизненный цикл
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -39,17 +47,17 @@ class CustomCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: Установка функций
+    
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.5),
+            imageView.heightAnchor.constraint(equalToConstant: 200),
             
-            textLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor),
-            textLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            textLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            textLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            textLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 4),
+            textLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
         ])
     }
     
@@ -57,4 +65,5 @@ class CustomCollectionViewCell: UICollectionViewCell {
         imageView.image = image
         textLabel.text = text
     }
+    
 }
